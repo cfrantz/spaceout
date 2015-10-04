@@ -70,7 +70,7 @@ void __fastcall__ stars_update(void)
 		j = i & 7;
 		if (j > STAR_SPRITE_N)
 			j -= STAR_SPRITE_N;
-		spr = oam_spr(x, y, STAR_SPRITE_START+j, STAR_PALETTE, spr);
+		spr = oam_spr(x, y, STAR_SPRITE_START+j, OAM_BEHIND|STAR_PALETTE, spr);
 
 		// Any star out-of-bounds gets reset and starts over in th center
 		// on the next frame.
