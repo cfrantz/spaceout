@@ -1,2 +1,3 @@
-# spaceout
-Breakout in space... for the NES
+# Spaceout: Breakout *in space* for the NES
+
+
