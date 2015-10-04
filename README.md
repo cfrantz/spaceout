@@ -6,6 +6,15 @@ programs in [jmk/cc65-nes-examples](https://github.com/jmk/cc65-nes-examples).
 
 ![Spaceout Image](spaceout.png)
 
+## TODO
+
+* Title screen
+* Mutliple lives
+* Score
+* Music
+* Sound effects
+* Explosions
+
 ## Things of note
 
 * I didn't like the idea of linking my charset/tilesets in as a binary file.
