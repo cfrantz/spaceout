@@ -1,5 +1,6 @@
-//this example shows how to set up a palette and use 8x8 HW sprites
-//also shows how fast (or slow) C code is
+//////////////////////////////////////////////////////////////////////
+// Spaceout: Breakout *in space*
+//////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 
 #include "starfield.h"
@@ -15,13 +16,11 @@ unsigned char spr;
 unsigned char framenum;
 unsigned char col;
 unsigned char xpos, ypos;
-unsigned int vel, brick;
+unsigned int vel;
 
 unsigned char pad;
 unsigned int ship_x, ship_y;
 
-//total number of balls on the screen
-//since there are 64 HW sprites, it is absolute max
 #define NTADR(x,y)	((0x2000|((y)<<5)|x))
 
 #define MSB(x)		(((x)>>8))
@@ -29,22 +28,20 @@ unsigned int ship_x, ship_y;
 
 #define BALLS_MAX	1
 #define ROWS_MAX 11
+#define UPDATE_LENGTH 10
 
 #define BORDER_BLOCK 0x80
 #define BRICK_L 0x82
 #define BRICK_R 0x83
 
 //balls parameters
-
 static unsigned int ball_x[BALLS_MAX];
 static unsigned int ball_y[BALLS_MAX];
 static unsigned int ball_dx[BALLS_MAX];
 static unsigned int ball_dy[BALLS_MAX];
 
+// bricks to be broken
 static unsigned char bricks[16 * ROWS_MAX];
-
-
-//palette for balls, there are four sets for different ball colors
 
 const unsigned char palette[32]={
 	// Background palette
@@ -60,6 +57,7 @@ const unsigned char palette[32]={
 	0x0F,0x19,0x29,0x30,
 };
 
+// Ship metasprite with thruster animation
 unsigned char ship_sprite[3][21] = { {
 		// x pos, y pos, tile-id, palette
 		0, 0, 0x84, 0,
@@ -87,7 +85,7 @@ unsigned char ship_sprite[3][21] = { {
 	}
 };
 
-unsigned char update_list[10*3];
+unsigned char update_list[UPDATE_LENGTH*3];
 unsigned char uptr;
 
 //////////////////////////////////////////////////////////////////////
@@ -214,7 +212,7 @@ void dbricks(void)
 	xputc('\n');
 }
 
-void zap_block(unsigned char x, unsigned char y, unsigned char v)
+void update_block(unsigned char x, unsigned char y, unsigned char v)
 {
 	update_list[uptr++] = MSB(NTADR(x, y));
 	update_list[uptr++] = LSB(NTADR(x, y));
@@ -238,8 +236,8 @@ void ball_bounce_brick(unsigned char b)
 #endif
 		ball_dx[b] = -ball_dx[b];
 		i <<= 1;
-		zap_block(i+1, j+2, 0);
-		zap_block(i+2, j+2, 0);
+		update_block(i+1, j+2, 0);
+		update_block(i+2, j+2, 0);
 	} else if (bricks[16*j + (i=(xpos+6)/16)]) {
 	    bricks[16*j + i] = 0;
 #ifdef DEBUG
@@ -248,8 +246,8 @@ void ball_bounce_brick(unsigned char b)
 #endif
 		ball_dx[b] = -ball_dx[b];
 		i <<= 1;
-		zap_block(i+1, j+2, 0);
-		zap_block(i+2, j+2, 0);
+		update_block(i+1, j+2, 0);
+		update_block(i+2, j+2, 0);
 	}
 
 	i = (xpos+4)/16;
@@ -261,8 +259,8 @@ void ball_bounce_brick(unsigned char b)
 #endif
 		ball_dy[b] = -ball_dy[b];
 		i <<= 1;
-		zap_block(i+1, j+2, 0);
-		zap_block(i+2, j+2, 0);
+		update_block(i+1, j+2, 0);
+		update_block(i+2, j+2, 0);
 	} else if (bricks[16*(j=(ypos+6)/8) + i]) {
 	    bricks[16*j + i] = 0;
 #ifdef DEBUG
@@ -271,8 +269,8 @@ void ball_bounce_brick(unsigned char b)
 #endif
 		ball_dy[b] = -ball_dy[b];
 		i <<= 1;
-		zap_block(i+1, j+2, 0);
-		zap_block(i+2, j+2, 0);
+		update_block(i+1, j+2, 0);
+		update_block(i+2, j+2, 0);
 	}
 }
 
@@ -293,8 +291,7 @@ void ball_bounce_ship(unsigned char b)
 
 void main(void)
 {
-	scroll(0, 0);
-	set_vram_update(10, update_list);
+	set_vram_update(UPDATE_LENGTH, update_list);
 	playfield_init(6);
 	dbricks();
 	pal_all(palette);//set palette for sprites
