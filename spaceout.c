@@ -186,12 +186,22 @@ void ball_init(unsigned char n)
 void ball_bounce_edge(unsigned char b)
 {
 	xpos = ball_x[b] >> 8;
-	if (xpos+2 < 8 || xpos+6 >= 248)
+	if (xpos+2 < 8) {
 		ball_dx[b] = -ball_dx[b];
+		ball_x[b] = (8-2)<<8;
+	} else if (xpos+6 >= 248) {
+		ball_dx[b] = -ball_dx[b];
+		ball_x[b] = (248-6)<<8;
+	}
 
 	ypos = ball_y[b] >> 8;
-	if (ypos+2 < 16 || ypos+6 >= 232)
+	if (ypos+2 <= 16) {
 		ball_dy[b] = -ball_dy[b];
+		ball_y[b] = (16-2)<<8;
+	} else if (ypos+6 >= 232) {
+		ball_dy[b] = -ball_dy[b];
+		ball_y[b] = (232-6)<<8;
+	}
 }
 
 void dbricks(void)
@@ -284,7 +294,7 @@ void ball_bounce_ship(unsigned char b)
 void main(void)
 {
 	scroll(0, 0);
-	set_vram_update(3, update_list);
+	set_vram_update(10, update_list);
 	playfield_init(6);
 	dbricks();
 	pal_all(palette);//set palette for sprites
