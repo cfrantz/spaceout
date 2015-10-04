@@ -2,6 +2,7 @@
 // Spaceout: Breakout *in space*
 //////////////////////////////////////////////////////////////////////
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "starfield.h"
 #include "neslib.h"
@@ -17,6 +18,8 @@ unsigned char framenum;
 unsigned char col;
 unsigned char xpos, ypos;
 unsigned int vel;
+unsigned int score;
+unsigned char mode;
 
 unsigned char pad;
 unsigned int ship_x, ship_y;
@@ -101,6 +104,22 @@ void write(int fd, const char *buf, int len)
 	}
 }
 
+void __fastcall__ vram_puts(unsigned char x, unsigned char y, const char *str)
+{
+	char ch;
+	vram_adr(NTADR(x, y));
+	while((ch=*str++) != 0) {
+		vram_put(ch-0x20);
+	}
+}
+
+void title_init(void)
+{
+	vram_puts(12, 4, "SPACEOUT");
+	vram_puts(1, 7, "Like breakout, but IN SPACE...");
+	vram_puts(10, 10, "Press START");
+}
+
 void playfield_init(unsigned char rows)
 {
 	vram_adr(0x2020);
@@ -119,7 +138,7 @@ void playfield_init(unsigned char rows)
 			if (j<rows) {
 				vram_put(BRICK_L);
 				vram_put(BRICK_R);
-				bricks[16+16*j + i] = 1;
+				bricks[16+16*j + i] = rows-j;
 			} else {
 				vram_put(0);
 				vram_put(0);
@@ -127,6 +146,7 @@ void playfield_init(unsigned char rows)
 		}
 		vram_put(BORDER_BLOCK);
 	}
+	vram_puts(10, 28, "SCORE 000000");
 
 	vram_adr(0x23c0);
 	for(j=0; j<16; j+=2) {
@@ -172,7 +192,7 @@ void ship_update(void)
 void ball_init(unsigned char n)
 {
 	for(i=0; i<n; ++i) {
-		ball_x[i]=128<<8;
+		ball_x[i]=10<<8;
 		ball_y[i]=128<<8;
 
 		// Set the initial velocity to 1.5pix/frame, down and to the right
@@ -219,6 +239,16 @@ void update_block(unsigned char x, unsigned char y, unsigned char v)
 	update_list[uptr++] = v;
 }
 
+void score_update(void)
+{
+	div_t d;
+	d = div(score,  10); update_block(20, 28, d.rem + 0x10);
+	d = div(d.quot, 10); update_block(19, 28, d.rem + 0x10);
+	d = div(d.quot, 10); update_block(18, 28, d.rem + 0x10);
+	d = div(d.quot, 10); update_block(17, 28, d.rem + 0x10);
+	update_block(16, 28, d.quot + 0x10);
+}
+
 void ball_bounce_brick(unsigned char b)
 {
 	ypos = (ball_y[b] >> 8);
@@ -228,8 +258,10 @@ void ball_bounce_brick(unsigned char b)
 	xpos = xpos - 8;
 
 	j = (ypos+4)/8;
-	if (bricks[16*j + (i=(xpos+1)/16)]) {
+	y = 0;
+	if ((x = bricks[16*j + (i=(xpos+1)/16)]) != 0) {
 	    bricks[16*j + i] = 0;
+		y += x;
 #ifdef DEBUG
 		dbricks();
 		printf("1 clearing %d %d\n", i, j);
@@ -238,8 +270,9 @@ void ball_bounce_brick(unsigned char b)
 		i <<= 1;
 		update_block(i+1, j+2, 0);
 		update_block(i+2, j+2, 0);
-	} else if (bricks[16*j + (i=(xpos+6)/16)]) {
+	} else if ((x = bricks[16*j + (i=(xpos+6)/16)]) != 0) {
 	    bricks[16*j + i] = 0;
+		y += x;
 #ifdef DEBUG
 		dbricks();
 		printf("2 clearing %d %d\n", i, j);
@@ -251,8 +284,9 @@ void ball_bounce_brick(unsigned char b)
 	}
 
 	i = (xpos+4)/16;
-	if (bricks[16*(j=(ypos+1)/8) + i]) {
+	if ((x = bricks[16*(j=(ypos+1)/8) + i]) != 0) {
 	    bricks[16*j + i] = 0;
+		y += x;
 #ifdef DEBUG
 		dbricks();
 		printf("3 clearing %d %d\n", i, j);
@@ -261,8 +295,9 @@ void ball_bounce_brick(unsigned char b)
 		i <<= 1;
 		update_block(i+1, j+2, 0);
 		update_block(i+2, j+2, 0);
-	} else if (bricks[16*(j=(ypos+6)/8) + i]) {
+	} else if ((x = bricks[16*(j=(ypos+6)/8) + i]) != 0) {
 	    bricks[16*j + i] = 0;
+		y += x;
 #ifdef DEBUG
 		dbricks();
 		printf("4 clearing %d %d\n", i, j);
@@ -271,6 +306,10 @@ void ball_bounce_brick(unsigned char b)
 		i <<= 1;
 		update_block(i+1, j+2, 0);
 		update_block(i+2, j+2, 0);
+	}
+	if (y) {
+		score += y;
+		score_update();
 	}
 }
 
@@ -292,10 +331,16 @@ void ball_bounce_ship(unsigned char b)
 void main(void)
 {
 	set_vram_update(UPDATE_LENGTH, update_list);
-	playfield_init(6);
-	dbricks();
 	pal_all(palette);//set palette for sprites
 	oam_size(0);
+
+begin:
+	ppu_off();
+	if (mode) {
+		playfield_init(6);
+	} else {
+		title_init();
+	}
 	ppu_on_all();//enable rendering
 
 	//initialize parameters
@@ -314,20 +359,25 @@ void main(void)
 
 		uptr = 0;
 		spr = 0;
-		ship_update();
+		if (mode == 0) {
+			if (pad & PAD_START) {
+				mode =1; goto begin;
+			}
+		} else {
+			ship_update();
+			for(k=0;k<BALLS_MAX;++k) {
+				//set a sprite for current ball
+				spr = oam_spr(ball_x[k]>>8, ball_y[k]>>8, 0x81, 0, spr);
 
-		for(k=0;k<BALLS_MAX;++k) {
-			//set a sprite for current ball
-			spr = oam_spr(ball_x[k]>>8, ball_y[k]>>8, 0x81, 0, spr);
+				//move the ball
+				ball_x[k]+=ball_dx[k];
+				ball_y[k]+=ball_dy[k];
 
-			//move the ball
-			ball_x[k]+=ball_dx[k];
-			ball_y[k]+=ball_dy[k];
-
-			//bounce the ball off the edges
-			ball_bounce_edge(k);
-			ball_bounce_brick(k);
-			ball_bounce_ship(k);
+				//bounce the ball off the edges
+				ball_bounce_edge(k);
+				ball_bounce_brick(k);
+				ball_bounce_ship(k);
+			}
 		}
 		stars_update();
 	}
