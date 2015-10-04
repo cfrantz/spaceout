@@ -90,6 +90,11 @@ unsigned char ship_sprite[3][21] = { {
 unsigned char update_list[10*3];
 unsigned char uptr;
 
+//////////////////////////////////////////////////////////////////////
+// I hacked fceux to put whatever is written to memory location
+// 0x4040 to stdout.  Hooray, now I can have printf style debugging
+// in my program.
+//////////////////////////////////////////////////////////////////////
 #define xputc(ch) ( *(char*)0x4040 = ch )
 void write(int fd, const char *buf, int len)
 {
@@ -116,7 +121,6 @@ void playfield_init(unsigned char rows)
 			if (j<rows) {
 				vram_put(BRICK_L);
 				vram_put(BRICK_R);
-//				bricks[4+ j*4 + i/4] |= 1 << (i/4)*2;
 				bricks[16+16*j + i] = 1;
 			} else {
 				vram_put(0);
@@ -173,14 +177,7 @@ void ball_init(unsigned char n)
 		ball_x[i]=128<<8;
 		ball_y[i]=128<<8;
 
-		/*
-		j=rand8();
-		vel = (1 + rand8() & 7) << 7;
-		ball_dx[i] = (j&1) ? -vel : vel;
-
-		vel = (1 + rand8() & 7) << 7;
-		ball_dy[i] = (j&2) ? -vel : vel;
-		*/
+		// Set the initial velocity to 1.5pix/frame, down and to the right
 		ball_dx[i] = 256+128;
 		ball_dy[i] = 256+128;
 	}
@@ -304,18 +301,16 @@ void main(void)
 	printf("hello world\n");
 
 	for(;;++framenum) {
-		ppu_waitnmi();//wait for next TV frame
+		//wait for next TV frame
+		ppu_waitnmi();
 		pad = pad_poll(0);
+
 		uptr = 0;
-
-		spr=0;
+		spr = 0;
 		ship_update();
-		//spr = oam_meta_spr(32, 180, spr, (unsigned char*)ship_sprite);
 
-		for(k=0;k<BALLS_MAX;++k)
-		{
+		for(k=0;k<BALLS_MAX;++k) {
 			//set a sprite for current ball
-
 			spr = oam_spr(ball_x[k]>>8, ball_y[k]>>8, 0x81, 0, spr);
 
 			//move the ball
