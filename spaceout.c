@@ -6,8 +6,6 @@
 
 #include "starfield.h"
 #include "neslib.h"
-#include "chars.h"
-#include "tiles.h"
 
 //general purpose vars
 unsigned char x, y, i,j,k;

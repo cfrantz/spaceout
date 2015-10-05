@@ -5,7 +5,7 @@
 NESLIB=/usr/local/cc65/share/cc65/lib/nes.lib
 all: spaceout.nes
 
-SRCS=spaceout.c starfield.c ftrig.c
+SRCS=spaceout.c starfield.c ftrig.c chars.c tiles.c
 OBJS=$(SRCS:.c=.o)
 ASMS=$(SRCS:.c=.s)
 

@@ -18,13 +18,8 @@ programs in [jmk/cc65-nes-examples](https://github.com/jmk/cc65-nes-examples).
 ## Things of note
 
 * I didn't like the idea of linking my charset/tilesets in as a binary file.
-
-  * I removed the `incbin` statement from crt0.s and replaced the CHR sets with
-    the definitions in charset.h and tileset.h.
-
-  * I hacked cc65 to accept numeric constants in binary
-    (e.g. `0b00101100 == 0x2c`).  It was trivial, but I should probably submit
-    a patch :)
+  I removed the `incbin` statement from crt0.s and replaced the CHR sets with
+  the definitions in charset.c and tileset.c.
 
 * Programming for the NES is hard.  Among the hints I've found:
 
