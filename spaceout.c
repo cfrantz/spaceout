@@ -9,9 +9,7 @@
 #include "chars.h"
 #include "tiles.h"
 
-
 //general purpose vars
-
 unsigned char x, y, i,j,k;
 unsigned char spr;
 unsigned char framenum;
@@ -104,6 +102,23 @@ void write(int fd, const char *buf, int len)
 	}
 }
 
+void dbricks(void)
+{
+	unsigned char z;
+	for(z=0; z<sizeof(bricks); z++) {
+		if ((z & 0xF) == 0) xputc('\n');
+		xputc(0x30+bricks[z]);
+	}
+	xputc('\n');
+}
+
+//////////////////////////////////////////////////////////////////////
+// Initialization functions
+//////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////
+// Put an ascii-encoded string int VRAM
+//////////////////////////////////////////////////////////////////////
 void __fastcall__ vram_puts(unsigned char x, unsigned char y, const char *str)
 {
 	char ch;
@@ -113,6 +128,9 @@ void __fastcall__ vram_puts(unsigned char x, unsigned char y, const char *str)
 	}
 }
 
+//////////////////////////////////////////////////////////////////////
+// Set up the title screen
+//////////////////////////////////////////////////////////////////////
 void title_init(void)
 {
 	vram_puts(12, 4, "SPACEOUT");
@@ -120,6 +138,9 @@ void title_init(void)
 	vram_puts(10, 10, "Press START");
 }
 
+//////////////////////////////////////////////////////////////////////
+// Set up the playfield
+//////////////////////////////////////////////////////////////////////
 void playfield_init(unsigned char rows)
 {
 	vram_adr(0x2020);
@@ -159,6 +180,9 @@ void playfield_init(unsigned char rows)
 	}
 }
 
+//////////////////////////////////////////////////////////////////////
+// Update the ship's position and animate its sprite
+//////////////////////////////////////////////////////////////////////
 void ship_update(void)
 {
 	unsigned char f = (framenum / 2) & 0x3;
@@ -220,16 +244,6 @@ void ball_bounce_edge(unsigned char b)
 		ball_dy[b] = -ball_dy[b];
 		ball_y[b] = (232-6)<<8;
 	}
-}
-
-void dbricks(void)
-{
-	unsigned char z;
-	for(z=0; z<sizeof(bricks); z++) {
-		if ((z & 0xF) == 0) xputc('\n');
-		xputc(0x30+bricks[z]);
-	}
-	xputc('\n');
 }
 
 void update_block(unsigned char x, unsigned char y, unsigned char v)
@@ -373,7 +387,7 @@ begin:
 				ball_x[k]+=ball_dx[k];
 				ball_y[k]+=ball_dy[k];
 
-				//bounce the ball off the edges
+				// bounce the ball and check for collisions
 				ball_bounce_edge(k);
 				ball_bounce_brick(k);
 				ball_bounce_ship(k);
